@@ -77,17 +77,17 @@ def ShowSeason(url, title):
         if u"saison" in season_title.lower():
             saison = str(season.xpath('./@href')).split('/')[-2]
             oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
-        elif u"derni?res" in season_title.lower():
+        elif u"derni" in season_title.lower():
             saison = "derniers"
             oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
-        elif u"exclusivit?" in season_title.lower():
+        elif u"exclusivi" in season_title.lower():
             # TODO: Add Exclusivite Web to the menu
             pass
     return oc
 
 @route(PREFIX + '/showepisodes')
 def ShowEpisodes(title, site_url, saison):
-    oc = ObjectContainer(title2=title)
+    oc = ObjectContainer(title2=unicode(title))
     url = site_url + "episodes/" + saison + "/tous.php"
     html = HTML.ElementFromURL(url)
     for video in html.xpath('//div[@class="mainWrapInner"]/div/div/section/div/div[2]/h3/a/../../..'):
@@ -116,6 +116,6 @@ def ShowEpisodes(title, site_url, saison):
             pass
 
     if len(oc) == 0:
-        return ObjectContainer(header="Empty", message=u"Aucun vid?o disponible")
+        return ObjectContainer(header="Empty", message=u"Aucun video disponible")
     else:
         return oc
