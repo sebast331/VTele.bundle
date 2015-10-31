@@ -60,10 +60,16 @@ def ShowSeason(url, title):
     site_url = html.xpath('//nav[@class="subSubMenu"]/a[last()]/@href')
     for season in html.xpath('//nav[@class="subSubMenu"]/a'):
         season_title = season.xpath('./text()')[0]
-        if "Saison".lower() in season_title.lower():
+        # Only display "Saisons" and "Derniers Episodes"
+        if u"saison" in season_title.lower():
             saison = str(season.xpath('./@href')).split('/')[-2]
             oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
-
+        elif u"dernières" in season_title.lower():
+            saison = "derniers"
+            oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
+        elif u"exclusivité" in season_title.lower():
+            # TODO: Add Exclusivite Web to the menu
+            pass
     return oc
 
 @route(PREFIX + '/showepisodes')
