@@ -306,13 +306,19 @@ def getStreamsURL(url):
     jsonMatch = json.loads(unicode(reMatch.group(1).replace("'", '"')))
 
     for video in jsonMatch:
+        encodingRate = int(video["encodingRate"])
+        defaultURL = video["defaultURL"]
+        height = int(video["frameHeight"])
+        width = 1080 if int(video["frameWidth"]) > 1080 else int(video["frameWidth"])
+        size = int(video["size"])
+        videoCodec = video["videoCodec"]
         arrStreams.append({
-            "encodingRate"  : int(video["encodingRate"]),
-            "defaultURL"    : video["defaultURL"],
-            "height"        : int(video["frameHeight"]),
-            "width"         : int(video["frameWidth"]),
-            "size"          : int(video["size"]),
-            "videoCodec"    : video["videoCodec"]
+            "encodingRate"  : encodingRate,
+            "defaultURL"    : defaultURL,
+            "height"        : height,
+            "width"         : width,
+            "size"          : size,
+            "videoCodec"    : videoCodec
         })
 
     arrStreams = sorted(arrStreams, key=lambda k: k['width'])[::-1] # [::-1] to reverse the list
