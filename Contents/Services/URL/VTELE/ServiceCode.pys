@@ -315,4 +315,6 @@ def getStreamsURL(url):
             "videoCodec"    : video["videoCodec"]
         })
 
+    arrStreams = sorted(arrStreams, key=lambda k: k['width'])[::-1] # [::-1] to reverse the list
+
     return arrStreams
