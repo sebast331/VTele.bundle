@@ -79,50 +79,6 @@ def MediaObjectsForURL(url):
         )
     return arrMediaObject
 
-    # return [
-    #
-    #     # First you are calling a MediaObject() for each type of video the website offers using the MediaObject API command
-    #     # Most separate these types of videos by the resolution, for example a site may offer a high and low quality option for each video on its site
-    #     # or they may offer an .flv format and an .mp4 format version of the video file. You can choose to only offer one type of video file
-    #     # or give the user the option of choosing the type of video file they want to use if there are several different types and qualities.
-    #     MediaObject(
-    #
-    #         # Then within each MediaObject you define the values for that particular type of video
-    #         # The options most used are video_codec, audio_codec, parts, container, video_resolution, audio_channels, and bitrate
-    #         # See the Framework documentation API reference for a lists all possible attributes for MediaObject()
-    #         # Audio Codecs are AAC and .MP3; Video Codecs are .H264; Container File Types are .MP4, .MKV, .MOV, and .AVI
-    #         # And for audio channels stereo equals 2
-    #         # I have found the best way to determine these attributes is to use VLC player and open the network stream URL of a few of the
-    #         # videos available on the site. And then use the tools to view the media information esp. codec info
-    #
-    #         video_codec=VideoCodec.H264,
-    #         audio_codec=AudioCodec.MP3,
-    #         video_resolution='720',
-    #         audio_channels=2,
-    #         container='f4v',
-    #
-    #         # This section of the code allows you to peice together videos that come in 2 or more parts it also uses a callback function
-    #         # that calls the PlayVideo function below. This done to separate the playing of the video from the call for the media object
-    #         # that way it will only play the video if the user selects that particular video.
-    #         # The code below is the basic format that all URL Serivces use and then they define PlayVideo if the video only has one part, it only needs one PartObject
-    #         # Note that we are also sending a fmt variable to tell the PlayVideo function whether this is a high or low quality video.  This is only
-    #         # necessary when you have more than one choice for the video files available.
-    #         parts=[PartObject(key=Callback(PlayVideo, url=url, fmt='hi'))]
-    #     ),
-    #     # Below we are doing the same as above, and defining a second MediaObject that is a low quality version of the video file that is available.
-    #     # The fmt variable is sent to the PlayVideo function to help you determine which of the available video types to send back to the Media Object.
-    #     MediaObject(
-    #         video_codec=VideoCodec.H264,
-    #         audio_codec=AudioCodec.MP3,
-    #         video_resolution='420',
-    #         audio_channels=2,
-    #         container='f4v',
-    #         parts=[PartObject(key=Callback(PlayVideo, url=url, fmt='lo'))]
-    #
-    #     )
-    # ]
-
-
 ####################################################################################################
 # Here we are defining the PlayVideo function we called in the callback function above. This function defines the pattern for 
 # the location and naming scheme of the video so we can play the video file directly. You use HTML request, regular expressions,
@@ -149,91 +105,13 @@ def PlayVideo(url, res):
             videoStream = video
             break
 
-    #return GetPlaylist(movieUrl, 'iPad')
-    #return IndirectResponse(VideoClipObject, key=HTTPLiveStreamURL(url=videoStream['defaultURL']))
     return IndirectResponse(VideoClipObject, key=videoStream['defaultURL'])
 
-    # Below I have included a basic example of how to program the PlayVideo function for pulling the video location on the web page
-    # whose URL was sent to the service and only has ONE video on the page. The code pulls the raw data from the web page
-    # using the URL and then uses a simple page search that returns an f4v video file url that is located in each html video page.
-    # It uses both of the variables we established at the top of the service.
-    # EXAMPLE:
-    #  page = HTTP.Request(url).content
-    # 	video = RE_VIDEO_URL.search(page).group('video_url') + ".f4v"
-    #	video = BASE_URL + video
-    # The example I chose to use for this function uses the optional xml video information file to pull the high and low
-    # quality version of a video from the url sent to this URL service.
-    # It basically pulls the content from the URL, looks through the page to find a mention of the regex value I defined as a
-    # global variable at the beginning of this document. Because the line of data I was using contained a parenthesis right before
-    # the address, I had to get a little creative in pulling it and then replacing the ending single quote to properly pull
-    # the xml address out of the page. The function then opens that xml video info page and uses xpath commands to extract the
-    # video URL and returns those values in the form of a high and low quality video. Then it uses the fmt variable to determine
-    # which of these videoss should be the value of video.
-
-    content = HTTP.Request(url).content
-    xmlurl = RE_XML_URL.search(content).group(0)
-    xmlurl = xmlurl.replace("'", '')
-    xmlurl = base_url + xmlurl
-
-    xml = XML.ElementFromURL(xmlurl)
-    if xml:
-        # Here we are extracting the video file addresses from the xml video file metadata
-        videoHi = xml.xpath('//video/videoHi//text()')[0]
-        videoLo = xml.xpath('//video/videoLo')[0].text
-        videoHi = videoHi.replace('.f4v', '.mp4')
-        videoLo = videoLo.replace('.f4v', '.mp4')
-
-    if fmt == 'hi':
-        video = videoHi
-    else:
-        video = videoLo
-
-    # We then return the address or value of the video.
-    # Since our example only has one PartObject in the MediaObject and we're using the @indirect decorator on this PlayVideo
-    # function, the proper way to return the video URL is via an IndirectResponse. The IndirectResponse() is a Plex Framework
-    # function which takes two (at least) arguments and acts as a shortcut for building an ObjectContainer to be returned. The first
-    # argument defines the type of the media object, in this case a VideoClipObject. Depending on the situation, other valid
-    # types could be PhotoObject, TrackObject, MovieObject, etc.
-    # The second argument is the "key" argument. In this example, the key is the direct link to the video. In some cases,
-    # the key may be set as a function, ie. key=RTMPVideoURL(args), or HTTPLiveStreamURL(args)
-    return IndirectResponse(VideoClipObject, key=video)
-    # The following line of code is commented out but remains as an example of an alternative method. There are instances where
-    # using @indirect/IndirectResponse() may not work, MediaObjects with multiple parts, for example. In such cases, the best
-    # alternative is to remove the @indirect decorator from the function definition and return the URL for the media file via
-    # a Redirect() instead. The Redirect() is a Plex Framework function that essentially tells the Client to look at this new URL
-    # for the actual media file.
-    '''
-	return Redirect(video)
-	'''
 
 
-####################################################################################################
-def TestURLs():
-    # This is for testing the URL, so you are making sure the URL service is working.
-    # YOU DO NOT NEED THIS IF YOU PUT A TEST URL IN YOUR SERVICEINFO.PLIST FILE.  THIS IS AN ALTERNATIVE WAY IF YOU THINK THE VIDEO PAGES WILL CHANGE
-    # ALOT AND YOU DO NOT THINK YOU CAN DETERMINE A SPECIFIC URL THAT WILL NOT CHANGE
-    # This coding below is a basic example that allows you to make the test url more dynamic so the service will not fail just because the
-    # test url no longer exists.  Enter the main domain for urls that will be sent to this service in place of anydomain.com
-
-    test_urls = []
-    page = HTML.ElementFromURL('http://www.anydomain.com/')
-
-    # here in this link command you need to edit this xpath to reflect the id or class is used to represent
-    # a video player container on pages for this url service and enter the correct domain name
-    for link in page.xpath("//a/span[@class='vid']/.."):
-        if len(test_urls) < 3:
-            url = link.get('href')
-            url = "http://www.anydomain.com" + url
-
-        if url not in test_urls:
-            test_urls.append(url)
-        else:
-            break
-
-    return test_urls
-
-
-
+#####################################################
+# The code below does the magic
+# It fetches the urls, passes the HTTP REFERER, etc.
 '''
     PARAMS:
         1: videoPlayer=
