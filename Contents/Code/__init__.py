@@ -26,9 +26,17 @@ def Start():
 # Displays the main menu
 @handler(PREFIX, TITLE, art=ART, thumb=ICON)
 def MainMenu():
-
-    # You have to open an object container to produce the icons you want to appear on this page.
     oc = ObjectContainer()
+
+    oc.add(DirectoryObject(key=Callback(TVShows, title=u"Toutes les emissions"), title=u"Toutes les emissions"))
+    oc.add(InputDirectoryObject(key=Callback(TVShows, title=u"Resultats de recherche: "), title="Rechercher", summary=u"Rechercher une emission"))
+
+    return oc
+
+@route(PREFIX + '/shows')
+def TVShows(title, titleRegex=None, query=""):
+    # You have to open an object container to produce the icons you want to appear on this page.
+    oc = ObjectContainer(title2 = unicode(title + query))
 
     # List the shows
     html = HTML.ElementFromURL(URL_VTELE)
@@ -42,9 +50,14 @@ def MainMenu():
         )
     arrEmissions = sorted(arrEmissions, key=lambda k: k['title'])
 
+    # Query is the result of a search and should be the regex
+    if (query != ""):
+    	titleRegex = query.lower()
+
     # Add each TV Show in the object container
     for video in arrEmissions:
-        oc.add(DirectoryObject(key=Callback(ShowSeason, url=video['url'], title=video['title']), title=video['title']))
+        if (titleRegex == None or Regex(titleRegex).search(video['title'].lower())):
+            oc.add(DirectoryObject(key=Callback(ShowSeason, url=video['url'], title=video['title']), title=video['title']))
 
     return oc
 
@@ -64,10 +77,10 @@ def ShowSeason(url, title):
         if u"saison" in season_title.lower():
             saison = str(season.xpath('./@href')).split('/')[-2]
             oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
-        elif u"dernières" in season_title.lower():
+        elif u"derni?res" in season_title.lower():
             saison = "derniers"
             oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
-        elif u"exclusivité" in season_title.lower():
+        elif u"exclusivit?" in season_title.lower():
             # TODO: Add Exclusivite Web to the menu
             pass
     return oc
@@ -103,6 +116,6 @@ def ShowEpisodes(title, site_url, saison):
             pass
 
     if len(oc) == 0:
-        return ObjectContainer(header="Empty", message=u"Aucun vidéo disponible")
+        return ObjectContainer(header="Empty", message=u"Aucun vid?o disponible")
     else:
         return oc
