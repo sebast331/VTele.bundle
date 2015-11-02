@@ -47,7 +47,10 @@ def MetadataObjectForURL(url):
     # Below is a basic example that pulls the the title, description and thumb from the head of a html document that makes a request of this URL Service
     title = page.xpath("//head//meta[@property='og:title']")[0].get('content')
     description = page.xpath("//head//meta[@property='og:description']")[0].get('content')
-    thumb = page.xpath("//head//meta[@property='og:image']")[0].get('content').replace("_playover", "")
+    if "sq.vtele.ca" in url:
+        thumb = "http://sq.vtele.ca/img/elements/backgrounds/video.jpg"
+    else:
+        thumb = page.xpath("//head//meta[@property='og:image']")[0].get('content').replace("_playover", "")
     # This command returns the metadata values you extracted as a video clip object.
     # See the Framework documentation API reference for all the choices of objects to return metadata
     return VideoClipObject(
@@ -131,6 +134,18 @@ def getParamJSON(source):
     jsonMatch = json.loads(jsonString)
     return jsonMatch
 
+def getParamIDBC(source):
+    arrRegex = [
+        '{\'idbc\': \'(.+?)\'',     # Normal video
+        'idBC:"(.+?)"'              # sq.vtele.ca
+    ]
+    for strRegex in arrRegex:
+            reMatch = re.search(strRegex, source, re.IGNORECASE)
+            if reMatch != None:
+                return reMatch.group(1)
+    # Nothing found
+    return None
+
 def getParamVideoPlayer():
     pass
 
@@ -169,8 +184,7 @@ def getStreamsURL(url):
     arrStreams = []
     testPageSource = getPageSource(url)
     paramAdditonalAd = "" # getParamAdditionalAdTargetingPArams(testPageSource)
-    paramVideoPlayer = getParamJSON(testPageSource)
-    paramVideoPlayer = paramVideoPlayer["idbc"]
+    paramVideoPlayer = getParamIDBC(testPageSource)
     paramRefURL = getParamRefURL(testPageSource)
     #paramStartTime = str(int(time.mktime(datetime.datetime.now().timetuple()))) + "653"
     paramStartTime = "1445956838653"

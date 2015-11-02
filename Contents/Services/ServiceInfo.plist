@@ -12,7 +12,7 @@
 			</array>
 			<key>URLPatterns</key>
 			<array>
-				<string>^http://vtele.ca/.+</string>
+				<string>^http://.*?\.?vtele.ca/.+</string>
 			</array>
 		</dict>
 	</dict>

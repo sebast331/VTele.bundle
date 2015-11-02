@@ -41,10 +41,10 @@ def TVShows(title, titleRegex=None, query=""):
     # List the shows
     html = HTML.ElementFromURL(URL_VTELE)
     arrEmissions = []
-    for video in html.xpath('//*[@id="skinWrap"]/div[3]/div/div/div[2]/div/div/div[1]/ul[2 <= position() and position() <= 3]/li/a'):
+    for video in html.xpath('//div[@class="span3 emissions"]/div/a'):
         arrEmissions.append(
             {
-                "url": video.xpath('./@href'),
+                "url": video.xpath('./@href')[0].replace("emissions", "videos"),
                 "title": video.xpath('./text()')[0]
             }
         )
@@ -66,54 +66,88 @@ def TVShows(title, titleRegex=None, query=""):
 #   @param url: string,
 @route(PREFIX + '/showseason')
 def ShowSeason(url, title):
+    Log("* Season URL => " + unicode(url))
     oc = ObjectContainer(title2=unicode(title))
-    html = HTML.ElementFromURL(url)
 
-    # Site de l'emission
-    site_url = html.xpath('//nav[@class="subSubMenu"]/a[last()]/@href')
-    for season in html.xpath('//nav[@class="subSubMenu"]/a'):
-        season_title = season.xpath('./text()')[0]
-        # Only display "Saisons" and "Derniers Episodes"
-        if u"saison" in season_title.lower():
-            saison = str(season.xpath('./@href')).split('/')[-2]
-            oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
-        elif u"derni" in season_title.lower():
-            saison = "derniers"
-            oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
-        elif u"exclusivi" in season_title.lower():
-            # TODO: Add Exclusivite Web to the menu
-            pass
+    # Some emissions requires different XPATH
+    if "sq.vtele.ca" in url:
+        return ShowEpisodes(title=title, site_url="http://sq.vtele.ca",saison="")
+    else:
+        # Site de l'emission
+        html = HTML.ElementFromURL(url)
+        site_url = html.xpath('//nav[@class="subSubMenu"]/a[last()]/@href')
+        for season in html.xpath('//nav[@class="subSubMenu"]/a'):
+            season_title = season.xpath('./text()')[0]
+            # Only display "Saisons" and "Derniers Episodes"
+            if u"saison" in season_title.lower():
+                saison = str(season.xpath('./@href')).split('/')[-2]
+                oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
+            elif u"derni" in season_title.lower():
+                saison = "derniers"
+                oc.add(DirectoryObject(key=Callback(ShowEpisodes, site_url=site_url, saison=saison, title=title + ' - ' + season_title), title=season_title))
+            elif u"exclusivi" in season_title.lower():
+                # TODO: Add Exclusivite Web to the menu
+                pass
     return oc
 
 @route(PREFIX + '/showepisodes')
 def ShowEpisodes(title, site_url, saison):
     oc = ObjectContainer(title2=unicode(title))
-    url = site_url + "episodes/" + saison + "/tous.php"
-    html = HTML.ElementFromURL(url)
-    for video in html.xpath('//div[@class="mainWrapInner"]/div/div/section/div/div[2]/h3/a/../../..'):
-        video_url = video.xpath('./div/a[2]/@href')
-        if len(video_url) > 0:
-            video_url = video_url[0]
-            description = "\n".join(video.xpath('./div[2]/p[2]/text()'))
-            thumb = video.xpath('./div[1]/a[1]/img/@src')[0]
-            title = video.xpath('./div[2]/h3/a/text()')[0]
-            date_time = video.xpath('./div[2]/span/text()')[0]
-            full_description = date_time + "\n" + description
 
-            # DEBUG
-            #Log("ShowEpisodes VideoURL: " + video_url)
+    # Some emissions requires different XPATH
+    if "sq.vtele.ca" in site_url:
+        # SQ - no seasons, only videos spread in multiple pages
+        html = HTML.ElementFromURL('http://sq.vtele.ca/episodes')
+        arrPages = html.xpath('//div[@class="pagination"]/a/@href')
+        for pageUrl in arrPages:
+            htmlVideo = HTML.ElementFromURL(site_url + pageUrl)
+            for video in htmlVideo.xpath('//ul[@id="episodes-list"]//a'):
+                video_url = video.xpath('./@href')
+                if len(video_url) > 0:
+                    video_url = video_url[0]
+                    description = "\n".join(video.xpath('./div[2]/p/text()'))
+                    thumb = video.xpath('./div/img/@src')[0]
+                    title = video.xpath('./div[2]/h2/text()')[0]
+                    date_time = video.xpath('./div[2]/h3/text()')[0]
+                    full_description = date_time + "\n" + description
 
-            oc.add(
-                EpisodeObject(
-                    url = video_url,
-                    title = title,
-                    summary = full_description,
-                    thumb = Resource.ContentsOfURLWithFallback(thumb, fallback=R(ICON))
+                    oc.add(
+                        EpisodeObject(
+                            url = video_url,
+                            title = title,
+                            summary = full_description,
+                            thumb = Resource.ContentsOfURLWithFallback(thumb, fallback=R(ICON))
+                        )
+                    )
+        pass
+    else:
+        url = site_url + "episodes/" + saison + "/tous.php"
+        Log("* ELSE ShowEpisodes URL => " + unicode(url))
+        html = HTML.ElementFromURL(url)
+        for video in html.xpath('//div[@class="mainWrapInner"]/div/div/section/div/div[2]/h3/a/../../..'):
+            video_url = video.xpath('./div/a[2]/@href')
+            if len(video_url) > 0:
+                video_url = video_url[0]
+                description = "\n".join(video.xpath('./div[2]/p[2]/text()'))
+                thumb = video.xpath('./div[1]/a[1]/img/@src')[0]
+                title = video.xpath('./div[2]/h3/a/text()')[0]
+                date_time = video.xpath('./div[2]/span/text()')[0]
+                full_description = date_time + "\n" + description
+
+                # DEBUG
+                #Log("ShowEpisodes VideoURL: " + video_url)
+
+                oc.add(
+                    EpisodeObject(
+                        url = video_url,
+                        title = title,
+                        summary = full_description,
+                        thumb = Resource.ContentsOfURLWithFallback(thumb, fallback=R(ICON))
+                    )
                 )
-            )
-        else:
-            # Video not available
-            pass
+            else:
+                # Video not available
+                pass
 
     if len(oc) == 0:
         return ObjectContainer(header="Empty", message=u"Aucun video disponible")
