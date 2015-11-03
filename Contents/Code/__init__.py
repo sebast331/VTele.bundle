@@ -98,6 +98,8 @@ def ShowSeason(url, title, show_type):
         for season in html.xpath('//nav[@class="subSubMenu"]/a'):
             season_title = season.xpath('./text()')[0]
             # Only display "Saisons" and "Derniers Episodes"
+            # Sometimes, the season are only numbers
+            season_title = "Saison " + str(season_title) if season_title in map(str, range(1,20)) else season_title
             if u"saison" in season_title.lower():
                 saison = str(season.xpath('./@href')).split('/')[-2]
                 oc.add(DirectoryObject(
