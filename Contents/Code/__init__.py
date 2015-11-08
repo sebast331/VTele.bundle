@@ -15,12 +15,15 @@ URL_VTELE = "http://vtele.ca/videos/"
 class TYPE_SHOW:
     DEFAULT = 0
     SQ = 1
+    UN_SOUPER_PRESQUE_PARFAIT = 2
 
     @staticmethod
     def get_show_type(url):
         url = url.lower()
         if "sq.vtele.ca" in url:
             return TYPE_SHOW.SQ
+        elif "un-souper-presque-parfait" in url:
+            return TYPE_SHOW.UN_SOUPER_PRESQUE_PARFAIT
         else:
             return TYPE_SHOW.DEFAULT
 
@@ -91,6 +94,8 @@ def ShowSeason(url, title, show_type):
     # Some emissions requires different XPATH
     if int(show_type) == TYPE_SHOW.SQ:
         return ShowEpisodes(title=title, site_url="http://sq.vtele.ca", saison="", show_type=show_type)
+    elif int(show_type) == TYPE_SHOW.UN_SOUPER_PRESQUE_PARFAIT:
+        pass
     else:
         # Site de l'emission
         html = HTML.ElementFromURL(url)
@@ -113,7 +118,11 @@ def ShowSeason(url, title, show_type):
             elif u"exclusivi" in season_title.lower():
                 # TODO: Add Exclusivite Web to the menu
                 pass
-    return oc
+
+    if len(oc) == 0:
+        return ObjectContainer(header="Empty", message=u"Aucun video disponible pour le moment")
+    else:
+        return oc
 
 
 @route(PREFIX + '/showepisodes')
